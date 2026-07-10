@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/app_colors.dart';
 import 'register.dart';
 import 'home.dart';
+import '../services/api_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,21 +18,47 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  void _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    print('🔵 Mulai login...');
+    print('🔵 Email: ${_emailController.text.trim()}');
+
+    final result = await ApiService.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    print('🟢 Hasil login: $result');
+
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      print('✅ Login sukses!');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const PawsNTailsHome()),
+      );
+    } else {
+      print('❌ Login gagal: ${result['error']}');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['error'] ?? 'Login gagal'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const PawsNTailsHome()),
-      );
-    }
   }
 
   @override
@@ -243,7 +270,7 @@ class _LoginPageState extends State<LoginPage> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: _login,
+                                onPressed: _isLoading ? null : _login,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -256,13 +283,24 @@ class _LoginPageState extends State<LoginPage> {
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                child: const Text(
-                                  'Masuk',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Masuk',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -423,16 +461,16 @@ class _AuthTextField extends StatelessWidget {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.rose, width: 1.2),
+          borderSide: const BorderSide(color: Colors.red, width: 1.2),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.rose, width: 1.5),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
         errorStyle: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.rose,
+          color: Colors.red,
         ),
       ),
     );

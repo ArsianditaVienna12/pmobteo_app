@@ -1,251 +1,233 @@
 // pages/profile.dart
-//
-// Profile page — referensi: contact details UI
-// Tema: Paws n Tails (forest teal)
 
 import 'package:flutter/material.dart';
 import '../models/app_colors.dart';
+import '../services/api_service.dart';
 import 'login.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  Map<String, dynamic>? _user;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final result = await ApiService.getProfile();
+
+    setState(() {
+      _isLoading = false;
+      if (result['success'] == true) {
+        _user = result['data'];
+      } else {
+        _error = result['error'] ?? 'Gagal memuat profil';
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: CustomScrollView(
-        slivers: [
-          // ---------- Header biru (pakai primary teal) ----------
-          SliverToBoxAdapter(
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
-                ),
-              ),
-              child: SafeArea(
-                bottom: false,
-                child: Column(
-                  children: [
-                    // AppBar manual
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Row(
-                        children: [
-                          _CircleButton(
-                            icon: Icons.arrow_back_rounded,
-                            onTap: () => Navigator.pop(context),
-                          ),
-                          const Expanded(
-                            child: Text(
-                              'Profil',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 40), // balance
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _buildError()
+              : _buildContent(),
+    );
+  }
 
-                    // Avatar
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySoft,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white30, width: 3),
-                      ),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 40,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+  Widget _buildError() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(_error!, style: const TextStyle(color: Colors.red)),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: _loadProfile,
+            child: const Text('Coba Lagi'),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    // Nama
-                    const Text(
-                      'Pengguna Paws',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
+  Widget _buildContent() {
+    final name = _user?['name'] ?? 'Pengguna Paws';
+    final email = _user?['email'] ?? '-';
+    final phone = _user?['phone'] ?? '-';
+    final address = _user?['address'] ?? '-';
 
-                    // Role
-                    Text(
-                      'Pencinta Hewan',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Action buttons row
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _ProfileActionButton(
-                            icon: Icons.email_outlined,
-                            onTap: () {},
-                          ),
-                          _ProfileActionButton(
-                            icon: Icons.phone_outlined,
-                            onTap: () {},
-                          ),
-                          Container(
-                            width: 1,
-                            height: 32,
-                            color: Colors.white24,
-                          ),
-                          _ProfileActionButton(
-                            icon: Icons.chat_bubble_outline_rounded,
-                            onTap: () {},
-                          ),
-                          _ProfileActionButton(
-                            icon: Icons.star_border_rounded,
-                            onTap: () {},
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                  ],
-                ),
+    return CustomScrollView(
+      slivers: [
+        // ---------- Header ----------
+        SliverToBoxAdapter(
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(32),
+                bottomRight: Radius.circular(32),
               ),
             ),
-          ),
-
-          // ---------- Info sections ----------
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverToBoxAdapter(
+            child: SafeArea(
+              bottom: false,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Email section
-                  _SectionTitle('Email'),
-                  const SizedBox(height: 12),
-                  _InfoCard(
-                    icon: Icons.email_outlined,
-                    label: 'Official',
-                    value: 'user@pawsntails.com',
-                  ),
-                  const SizedBox(height: 8),
-                  _InfoCard(
-                    icon: Icons.email_outlined,
-                    label: 'Personal',
-                    value: 'pengguna@email.com',
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Phone section
-                  _SectionTitle('Nomor Telepon'),
-                  const SizedBox(height: 12),
-                  _InfoCard(
-                    icon: Icons.phone_outlined,
-                    label: 'WhatsApp',
-                    value: '+62 812-3456-7890',
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Team/Location section
-                  _SectionTitle('Lokasi'),
-                  const SizedBox(height: 12),
-                  _InfoCard(
-                    icon: Icons.location_on_outlined,
-                    label: 'Domisili',
-                    value: 'Malang, Jawa Timur',
-                    showArrow: true,
-                    onTap: () {},
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Adopsi section
-                  _SectionTitle('Riwayat Adopsi'),
-                  const SizedBox(height: 12),
-                  _InfoCard(
-                    icon: Icons.pets_outlined,
-                    label: 'Hewan Diadopsi',
-                    value: '2 hewan',
-                    showArrow: true,
-                    onTap: () {},
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Logout button
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            _showLogoutDialog(context);
-                          },
-                          icon: const Icon(Icons.logout_rounded, size: 18),
-                          label: const Text('Keluar'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.rose,
-                            side: BorderSide(
-                              color: AppColors.rose.withOpacity(0.3),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 14,
+                  // AppBar manual
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        _CircleButton(
+                          icon: Icons.arrow_back_rounded,
+                          onTap: () => Navigator.pop(context),
+                        ),
+                        const Expanded(
+                          child: Text(
+                            'Profil',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.share_outlined, size: 18),
-                          label: const Text('Bagikan'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.ink,
-                            side: BorderSide(color: AppColors.line),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            textStyle: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                        const SizedBox(width: 40),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
+
+                  // Avatar
+                  Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white30, width: 3),
+                    ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Nama
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Role
+                  Text(
+                    'Pencinta Hewan',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
                 ],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+
+        // ---------- Info sections ----------
+        SliverPadding(
+          padding: const EdgeInsets.all(20),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionTitle('Email'),
+                const SizedBox(height: 12),
+                _InfoCard(
+                  icon: Icons.email_outlined,
+                  label: 'Email Terdaftar',
+                  value: email,
+                ),
+                const SizedBox(height: 24),
+
+                _SectionTitle('Nomor Telepon'),
+                const SizedBox(height: 12),
+                _InfoCard(
+                  icon: Icons.phone_outlined,
+                  label: 'WhatsApp',
+                  value: phone,
+                ),
+                const SizedBox(height: 24),
+
+                _SectionTitle('Alamat'),
+                const SizedBox(height: 12),
+                _InfoCard(
+                  icon: Icons.location_on_outlined,
+                  label: 'Domisili',
+                  value: address,
+                ),
+                const SizedBox(height: 32),
+
+                // Logout button (full width, cuma ini)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _showLogoutDialog(context);
+                    },
+                    icon: const Icon(Icons.logout_rounded, size: 18),
+                    label: const Text('Keluar'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: BorderSide(
+                        color: Colors.red.withOpacity(0.3),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -275,16 +257,19 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context); // tutup dialog
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-                (route) => false, // hapus semua route sebelumnya
-              );
+            onPressed: () async {
+              await ApiService.logout();
+              if (context.mounted) {
+                Navigator.pop(context);
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginPage()),
+                  (route) => false,
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.rose,
+              backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -318,31 +303,6 @@ class _CircleButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.15),
           shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 20, color: Colors.white),
-      ),
-    );
-  }
-}
-
-class _ProfileActionButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _ProfileActionButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      customBorder: const CircleBorder(),
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white24),
         ),
         child: Icon(icon, size: 20, color: Colors.white),
       ),

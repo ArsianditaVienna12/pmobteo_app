@@ -1,11 +1,9 @@
 // pages/register.dart
-//
-// Register page — sama style kayak login
 
 import 'package:flutter/material.dart';
 import '../models/app_colors.dart';
+import '../services/api_service.dart';
 import 'login.dart';
-import 'home.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -20,8 +18,55 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+  bool _isLoading = false;
+
+  void _register() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password dan konfirmasi tidak cocok'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final result = await ApiService.register(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      phone: _phoneController.text.trim(),
+      address: _addressController.text.trim(),
+    );
+
+    setState(() => _isLoading = false);
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Register berhasil! Silakan login')),
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['error'] ?? 'Register gagal'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -29,18 +74,9 @@ class _RegisterPageState extends State<RegisterPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
     super.dispose();
-  }
-
-  void _register() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: integrate with real auth
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const PawsNTailsHome()),
-        (route) => false,
-      );
-    }
   }
 
   @override
@@ -49,7 +85,7 @@ class _RegisterPageState extends State<RegisterPage> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Background image (sama kayak login)
+          // Background image
           Image.network(
             'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&q=80',
             fit: BoxFit.cover,
@@ -60,6 +96,7 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ),
           ),
+          // Dark gradient overlay
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -72,18 +109,17 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ),
           ),
-
           // Content
           SafeArea(
             child: Column(
               children: [
-                // Top: back button + logo
+                // Top: back button only (logo & text pindah ke kotak krem)
                 Expanded(
                   flex: 1,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Back button
@@ -104,46 +140,18 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.pets_rounded,
-                              size: 28,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              'DAFTAR',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Bergabung dan temukan\nsahabat berbulumu.',
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.5,
-                            color: Colors.white.withOpacity(0.85),
-                          ),
-                        ),
                       ],
                     ),
                   ),
                 ),
 
-                // Bottom sheet: register form
+                // Bottom sheet: register form (isi semua masuk sini)
                 Expanded(
-                  flex: 4,
+                  flex: 5,
                   child: Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.bg,
-                      borderRadius: const BorderRadius.only(
+                      borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(32),
                         topRight: Radius.circular(32),
                       ),
@@ -167,6 +175,38 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ),
                             const SizedBox(height: 24),
+
+                            // ===== TITLE & DESKRIPSI MASUK KE KOTAK KREM =====
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.pets_rounded,
+                                  size: 28,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'DAFTAR',
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColors.ink,
+                                    letterSpacing: 2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Bergabung dan temukan\nsahabat berbulu untukmu.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                height: 1.5,
+                                color: AppColors.inkSoft,
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            // ===================================================
 
                             // Name
                             _AuthTextField(
@@ -262,13 +302,43 @@ class _RegisterPageState extends State<RegisterPage> {
                                 return null;
                               },
                             ),
+                            const SizedBox(height: 16),
+
+                            // Phone (baru)
+                            _AuthTextField(
+                              controller: _phoneController,
+                              hint: 'No. Telepon',
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'No. telepon wajib diisi';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Address (baru)
+                            _AuthTextField(
+                              controller: _addressController,
+                              hint: 'Alamat',
+                              icon: Icons.location_on_outlined,
+                              maxLines: 2,
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Alamat wajib diisi';
+                                }
+                                return null;
+                              },
+                            ),
                             const SizedBox(height: 28),
 
                             // Register button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: _register,
+                                onPressed: _isLoading ? null : _register,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -281,13 +351,24 @@ class _RegisterPageState extends State<RegisterPage> {
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                child: const Text(
-                                  'Daftar',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
+                                child: _isLoading
+                                    ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Daftar',
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -342,6 +423,7 @@ class _AuthTextField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
+  final int? maxLines;
 
   const _AuthTextField({
     required this.controller,
@@ -351,6 +433,7 @@ class _AuthTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.validator,
+    this.maxLines = 1,
   });
 
   @override
@@ -360,6 +443,7 @@ class _AuthTextField extends StatelessWidget {
       keyboardType: keyboardType,
       obscureText: obscureText,
       validator: validator,
+      maxLines: maxLines,
       style: const TextStyle(
         fontSize: 14,
         color: AppColors.ink,
@@ -390,16 +474,16 @@ class _AuthTextField extends StatelessWidget {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.rose, width: 1.2),
+          borderSide: const BorderSide(color: Colors.red, width: 1.2),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.rose, width: 1.5),
+          borderSide: const BorderSide(color: Colors.red, width: 1.5),
         ),
         errorStyle: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
-          color: AppColors.rose,
+          color: Colors.red,
         ),
       ),
     );
